@@ -5,6 +5,7 @@
 #include <thread>
 
 #include "CycleTimer.h"
+#include "kmeans_ispc.h"
 
 using namespace std;
 
@@ -18,6 +19,7 @@ typedef struct {
   int *clusterAssignments;
   double *currCost;
   int M, N, K;
+  double dist_cost;
 } WorkerArgs;
 
 
@@ -53,11 +55,47 @@ static bool stoppingConditionMet(double *prevCost, double *currCost,
  * @param nDim The dimensionality (number of elements) in each data point
  *     (must be the same for x and y).
  */
+double dist(double *x, double *y, int nDim, double &cost) {
+  double startTime = CycleTimer::currentSeconds();
+  double accum = 0.0;
+  // for (int i = 0; i < nDim; i++) {
+  //   accum += pow((x[i] - y[i]), 2);
+  // }
+  accum = ispc::dist_ispc(x, y, nDim);
+  // accum = ispc::dist_ispc_withtasks(x, y, nDim);
+  // double accum_ispc = ispc::dist_ispc(x, y, nDim);
+  // double accum_ispc_withtasks = ispc::dist_ispc_withtasks(x, y, nDim);
+  // if (abs(accum_ispc_withtasks - accum) > 0.05) {
+  //   printf("ispc_withtasks - serial = %3.f\n", accum_ispc_withtasks - accum);
+  //   // printf("ispc - serial = %3.f\n", accum_ispc - accum);
+  //   // printf("ispc_withtasks - ispc = %3.f\n", accum_ispc_withtasks - accum_ispc);
+  //   printf("ispc_withtasks = %3.f\n", accum_ispc_withtasks);
+  //   // printf("ispc = %3.f\n", accum_ispc);
+  //   printf("serial = %3.f\n", accum);
+  // }
+  
+
+  double endTime = CycleTimer::currentSeconds();
+  cost += (endTime - startTime);
+  return sqrt(accum);
+}
+
 double dist(double *x, double *y, int nDim) {
+  // double startTime = CycleTimer::currentSeconds();
   double accum = 0.0;
   for (int i = 0; i < nDim; i++) {
     accum += pow((x[i] - y[i]), 2);
   }
+  double accum_ispc = ispc::dist_ispc(x, y, nDim);
+  double accum_ispc_withtasks = ispc::dist_ispc_withtasks(x, y, nDim);
+  printf("ispc_withtasks - serial = %3.f\n", accum_ispc_withtasks - accum);
+  printf("ispc - serial = %3.f\n", accum_ispc - accum);
+  printf("ispc_withtasks - ispc = %3.f\n", accum_ispc_withtasks - accum_ispc);
+  printf("ispc_withtasks = %3.f\n", accum_ispc_withtasks);
+  printf("ispc = %3.f\n", accum_ispc);
+  printf("serial = %3.f\n", accum);
+  // accum = ispc::dist_ispc_withtasks(x, y, nDim);
+  // double endTime = CycleTimer::currentSeconds();
   return sqrt(accum);
 }
 
@@ -77,7 +115,7 @@ void computeAssignments(WorkerArgs *const args) {
   for (int k = args->start; k < args->end; k++) {
     for (int m = 0; m < args->M; m++) {
       double d = dist(&args->data[m * args->N],
-                      &args->clusterCentroids[k * args->N], args->N);
+                      &args->clusterCentroids[k * args->N], args->N, args->dist_cost);
       if (d < minDist[m]) {
         minDist[m] = d;
         args->clusterAssignments[m] = k;
@@ -140,7 +178,7 @@ void computeCost(WorkerArgs *const args) {
   for (int m = 0; m < args->M; m++) {
     int k = args->clusterAssignments[m];
     accum[k] += dist(&args->data[m * args->N],
-                     &args->clusterCentroids[k * args->N], args->N);
+                     &args->clusterCentroids[k * args->N], args->N, args->dist_cost);
   }
 
   // Update costs
@@ -188,6 +226,7 @@ void kMeansThread(double *data, double *clusterCentroids, int *clusterAssignment
   args.M = M;
   args.N = N;
   args.K = K;
+  args.dist_cost = 0;
 
   // Initialize arrays to track cost
   for (int k = 0; k < K; k++) {
@@ -213,6 +252,8 @@ void kMeansThread(double *data, double *clusterCentroids, int *clusterAssignment
 
     iter++;
   }
+
+  printf("[dist computation cost]: %.3f ms\n", args.dist_cost * 1000);
 
   free(currCost);
   free(prevCost);

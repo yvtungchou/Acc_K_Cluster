@@ -94,38 +94,41 @@ int main() {
 
   // NOTE: if you want to generate your own data (for fun), you can use the
   // below code
-  /*
-  M = 1e6;
-  N = 100;
-  K = 3;
-  epsilon = 0.1;
+  
+  // M = 1e6;
+  // N = 100;
+  // K = 3;
+  // epsilon = 0.1;
 
-  data = new double[M * N];
-  clusterCentroids = new double[K * N];
-  clusterAssignments = new int[M];
+  // data = new double[M * N];
+  // clusterCentroids = new double[K * N];
+  // clusterAssignments = new int[M];
 
-  // Initialize data
-  initData(data, M, N);
-  initCentroids(clusterCentroids, K, N);
+  // // Initialize data
+  // initData(data, M, N);
+  // initCentroids(clusterCentroids, K, N);
 
-  // Initialize cluster assignments
-  for (int m = 0; m < M; m++) {
-    double minDist = 1e30;
-    int bestAssignment = -1;
-    for (int k = 0; k < K; k++) {
-      double d = dist(&data[m * N], &clusterCentroids[k * N], N);
-      if (d < minDist) {
-        minDist = d;
-        bestAssignment = k;
-      }
-    }
-    clusterAssignments[m] = bestAssignment;
-  }
+  // // Initialize cluster assignments
+  // for (int m = 0; m < M; m++) {
+  //   double minDist = 1e30;
+  //   int bestAssignment = -1;
+  //   for (int k = 0; k < K; k++) {
+  //     double d = dist(&data[m * N], &clusterCentroids[k * N], N);
+  //     if (d < minDist) {
+  //       minDist = d;
+  //       bestAssignment = k;
+  //     }
+  //   }
+  //   clusterAssignments[m] = bestAssignment;
+  // }
 
-  // Uncomment to generate data file
+  // // Uncomment to generate data file
   // writeData("./data.dat", data, clusterCentroids, clusterAssignments, &M, &N,
   //           &K, &epsilon);
-  */
+
+  // writeData("./data_large_dim.dat", data, clusterCentroids, clusterAssignments, &M, &N,
+  //   &K, &epsilon);
+
 
   printf("Running K-means with: M=%d, N=%d, K=%d, epsilon=%f\n", M, N,
          K, epsilon);
@@ -136,6 +139,10 @@ int main() {
 
   double startTime = CycleTimer::currentSeconds();
   kMeansThread(data, clusterCentroids, clusterAssignments, M, N, K, epsilon);
+  
+  // dist(data+N, clusterCentroids, N);
+  
+  
   double endTime = CycleTimer::currentSeconds();
   printf("[Total Time]: %.3f ms\n", (endTime - startTime) * 1000);
 
