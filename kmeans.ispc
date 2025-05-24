@@ -2,8 +2,7 @@ export uniform double dist_ispc(uniform double x[], uniform double y[], uniform 
 {
     varying double local_accum = 0;
     foreach (i = 0 ... nDim) { 
-        double diff = x[i] - y[i];
-        local_accum += diff * diff;
+        local_accum += (x[i] - y[i]) * (x[i] - y[i]);
     }
     return reduce_add(local_accum);
 }
